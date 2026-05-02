@@ -1,5 +1,6 @@
 const FacturMainOeuvre = require('../models/facturMainOeuvre');
-
+const HistoriqueFactures = require('../models/historiqueFactures');
+const User = require('../models/User');
 // CREATE facture
 exports.createFacture = async (req, res) => {
     try {
@@ -9,12 +10,37 @@ exports.createFacture = async (req, res) => {
             reparation = [],
             nombreHeure,
             prixParHeure,
-            tva = 19
+            tva = 19,
+            nomAdmin
         } = req.body;
 
-        const totalChangement = changement.reduce((sum, item) => sum + item.prix, 0);
-        const totalDressage = dressage.reduce((sum, item) => sum + item.prix, 0);
-        const totalReparation = reparation.reduce((sum, item) => sum + item.prix, 0);
+        // vérifier admin ou sous-admin
+        const admin = await User.findOne({
+            username: nomAdmin,
+            role: { $in: ['admin', 'sous-admin'] }
+        });
+
+        if (!admin) {
+            return res.status(404).json({
+                success: false,
+                message: "Utilisateur non autorisé à créer une facture"
+            });
+        }
+
+        const totalChangement = changement.reduce(
+            (sum, item) => sum + (item.prix || 0),
+            0
+        );
+
+        const totalDressage = dressage.reduce(
+            (sum, item) => sum + (item.prix || 0),
+            0
+        );
+
+        const totalReparation = reparation.reduce(
+            (sum, item) => sum + (item.prix || 0),
+            0
+        );
 
         const totalMainOeuvre = nombreHeure * prixParHeure;
 
@@ -33,6 +59,24 @@ exports.createFacture = async (req, res) => {
         });
 
         await facture.save();
+
+        let historique = await HistoriqueFactures.findOne({
+            nomAdmin
+        });
+
+        if (!historique) {
+            historique = new HistoriqueFactures({
+                nomAdmin,
+                facturesMainOeuvre: []
+            });
+        }
+
+        historique.facturesMainOeuvre.push({
+            facture: facture._id,
+            visibilite: true
+        });
+
+        await historique.save();
 
         res.status(201).json({
             success: true,

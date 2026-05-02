@@ -7,6 +7,7 @@ const cookieParser = require('cookie-parser');
 
 const userRoutes = require('./routes/userRoutes');
 const facturMainOeuvreRoutes = require('./routes/facturMainOeuvreRoutes');
+const HistoriqueFactureRoutes = require('./routes/HistoriqueFactureRoutes');
 
 const app = express();
 
@@ -23,7 +24,7 @@ app.use(cookieParser());
 /* ================= ROUTES ================= */
 app.use('/api/users', userRoutes);
 app.use('/api/factur-main-oeuvre', facturMainOeuvreRoutes);
-
+app.use('/api/historique-factures', HistoriqueFactureRoutes);
 /* ================= TEST ROUTE ================= */
 app.get('/', (req, res) => {
     res.json({
