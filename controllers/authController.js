@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const createToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 };
-
+ 
 exports.register = async (req, res) => {
     try {
         const { username, password, role } = req.body;
@@ -227,6 +227,53 @@ exports.deleteUserAny = async (req, res) => {
             message_en: "An error occurred during deletion.",
             message_fr: "Une erreur est survenue lors de la suppression.",
             error: err.message
+        });
+    }
+};
+exports.changePasswordByUsername = async (req, res) => {
+    try {
+        const { username, newPassword, confirmPassword } = req.body;
+
+        // Vérifier champs
+        if (!username || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Tous les champs sont obligatoires."
+            });
+        }
+
+        // Vérifier password match
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Les mots de passe ne correspondent pas."
+            });
+        }
+
+        // Vérifier user
+        const user = await User.findOne({ username });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "Nom d'utilisateur introuvable."
+            });
+        }
+
+        // Update password
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Mot de passe modifié avec succès."
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Erreur serveur.",
+            error: error.message
         });
     }
 };
