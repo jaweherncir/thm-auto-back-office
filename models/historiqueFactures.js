@@ -18,6 +18,34 @@ const historiqueSchema = new mongoose.Schema({
                 default: true
             }
         }
+    ],
+
+    facturesPeinture: [
+        {
+            facture: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'FacturePeinture',
+                required: true
+            },
+            visibilite: {
+                type: Boolean,
+                default: true
+            }
+        }
+    ],
+
+    facturesDevice: [
+        {
+            facture: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'FactureDevice',
+                required: true
+            },
+            visibilite: {
+                type: Boolean,
+                default: true
+            }
+        }
     ]
 
 }, {

@@ -5,8 +5,8 @@ const historyController = require('../controllers/historiqueController');
 router.get('/', historyController.getAllHistory);
 //change visibility facture in history
 router.put(
-    '/toggle/:historiqueId/:factureId',
-    historyController.toggleVisibilityFacture
+    '/change-visibility/:historiqueId/:type/:factureId',
+    historyController.changeFactureVisibility
 );
 router.get('/visible', historyController.getVisibleFactures);
 
