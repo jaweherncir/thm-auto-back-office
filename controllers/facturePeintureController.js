@@ -1,6 +1,8 @@
 const FacturePeinture = require('../models/facture_peinture');
 const HistoriqueFactures = require('../models/historiqueFactures');
 const User = require('../models/User');
+
+// CREATE
 exports.createFacturePeinture = async (req, res) => {
     try {
         const {
@@ -9,10 +11,10 @@ exports.createFacturePeinture = async (req, res) => {
             numCarteGrise,
             matriculeVoiture,
             nomAdmin,
-            materiels
+            materiels,
+            locationFour
         } = req.body;
 
-        // check admin
         const adminExists = await User.findOne({ username: nomAdmin });
 
         if (!adminExists) {
@@ -22,17 +24,16 @@ exports.createFacturePeinture = async (req, res) => {
             });
         }
 
-        // create facture
         const facture = await FacturePeinture.create({
             client,
             numClient,
             numCarteGrise,
             matriculeVoiture,
             nomAdmin,
-            materiels
+            materiels,
+            locationFour
         });
 
-        // find or create history
         let historique = await HistoriqueFactures.findOne({ nomAdmin });
 
         if (!historique) {
@@ -62,7 +63,9 @@ exports.createFacturePeinture = async (req, res) => {
         });
     }
 };
-// GET all factures
+
+
+// GET ALL
 exports.getAllFacturesPeinture = async (req, res) => {
     try {
         const factures = await FacturePeinture.find().sort({ createdAt: -1 });
@@ -82,7 +85,7 @@ exports.getAllFacturesPeinture = async (req, res) => {
 };
 
 
-// GET facture by id
+// GET BY ID
 exports.getFacturePeintureById = async (req, res) => {
     try {
         const facture = await FacturePeinture.findById(req.params.id);
@@ -108,7 +111,7 @@ exports.getFacturePeintureById = async (req, res) => {
 };
 
 
-// UPDATE facture
+// UPDATE
 exports.updateFacturePeinture = async (req, res) => {
     try {
         const facture = await FacturePeinture.findById(req.params.id);
@@ -120,7 +123,24 @@ exports.updateFacturePeinture = async (req, res) => {
             });
         }
 
-        Object.assign(facture, req.body);
+        const {
+            client,
+            numClient,
+            numCarteGrise,
+            matriculeVoiture,
+            nomAdmin,
+            materiels,
+            locationFour
+        } = req.body;
+
+        facture.client = client || facture.client;
+        facture.numClient = numClient || facture.numClient;
+        facture.numCarteGrise = numCarteGrise || facture.numCarteGrise;
+        facture.matriculeVoiture = matriculeVoiture || facture.matriculeVoiture;
+        facture.nomAdmin = nomAdmin || facture.nomAdmin;
+        facture.materiels = materiels || facture.materiels;
+        facture.locationFour = locationFour ?? facture.locationFour;
+
         await facture.save();
 
         res.status(200).json({
@@ -128,6 +148,7 @@ exports.updateFacturePeinture = async (req, res) => {
             message: "Facture mise à jour avec succès.",
             data: facture
         });
+
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -138,7 +159,7 @@ exports.updateFacturePeinture = async (req, res) => {
 };
 
 
-// DELETE facture
+// DELETE
 exports.deleteFacturePeinture = async (req, res) => {
     try {
         const facture = await FacturePeinture.findByIdAndDelete(req.params.id);
@@ -154,6 +175,7 @@ exports.deleteFacturePeinture = async (req, res) => {
             success: true,
             message: "Facture supprimée avec succès."
         });
+
     } catch (error) {
         res.status(500).json({
             success: false,

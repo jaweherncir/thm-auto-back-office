@@ -15,7 +15,8 @@ const materielSchema = new mongoose.Schema({
         required: true
     },
     total: {
-        type: Number
+        type: Number,
+        default: 0
     }
 });
 
@@ -47,6 +48,12 @@ const facturePeintureSchema = new mongoose.Schema({
 
     materiels: [materielSchema],
 
+    // prix location four
+    locationFour: {
+        type: Number,
+        default: 0
+    },
+
     totalHT: {
         type: Number,
         default: 0
@@ -76,7 +83,9 @@ const facturePeintureSchema = new mongoose.Schema({
     collection: 'facture_peinture'
 });
 
-facturePeintureSchema.pre('save', function (next) {
+
+// Calcul automatique avant sauvegarde
+facturePeintureSchema.pre('save', function () {
     let totalHT = 0;
 
     this.materiels.forEach(item => {
@@ -84,11 +93,12 @@ facturePeintureSchema.pre('save', function (next) {
         totalHT += item.total;
     });
 
+    // ajout location four
+    totalHT += this.locationFour || 0;
+
     this.totalHT = totalHT;
     this.montantTVA = totalHT * (this.tva / 100);
     this.totalTTC = totalHT + this.montantTVA;
-
-   
 });
 
 module.exports = mongoose.model('FacturePeinture', facturePeintureSchema);
