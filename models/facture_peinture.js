@@ -21,6 +21,11 @@ const materielSchema = new mongoose.Schema({
 });
 
 const facturePeintureSchema = new mongoose.Schema({
+    num_facture: { 
+        type: String, 
+        required: true, 
+        unique: true 
+    },
     client: {
         type: String,
         required: true

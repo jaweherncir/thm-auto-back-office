@@ -1,19 +1,30 @@
 const HistoriqueFactures = require('../models/historiqueFactures');
 const FacturMainOeuvre = require('../models/facturMainOeuvre');
+const FacturePeinture = require('../models/facture_peinture');
+const FactureDevice = require('../models/facturesDevice');
+
+
+// ======================================================
+// GET ALL HISTORY
+// ======================================================
 exports.getAllHistory = async (req, res) => {
     try {
         const history = await HistoriqueFactures.find()
             .populate('facturesMainOeuvre.facture')
+            .populate('facturesPeinture.facture')
+            .populate('facturesDevice.facture')
             .sort({ createdAt: -1 });
 
-        // nombre total des historiques
         const countHistory = history.length;
 
-        // nombre total des factures
-        const countFactures = history.reduce(
-            (total, item) => total + item.facturesMainOeuvre.length,
-            0
-        );
+        const countFactures = history.reduce((total, item) => {
+            return (
+                total +
+                item.facturesMainOeuvre.length +
+                item.facturesPeinture.length +
+                item.facturesDevice.length
+            );
+        }, 0);
 
         res.status(200).json({
             success: true,
@@ -29,6 +40,11 @@ exports.getAllHistory = async (req, res) => {
         });
     }
 };
+
+
+// ======================================================
+// DELETE FACTURE FROM HISTORY
+// ======================================================
 exports.deleteFactureFromHistory = async (req, res) => {
     try {
         const { historiqueId, factureId } = req.params;
@@ -42,12 +58,11 @@ exports.deleteFactureFromHistory = async (req, res) => {
             });
         }
 
-        // 🔥 comparaison SAFE ObjectId
-        const item = historique.facturesMainOeuvre.find(
+        const exists = historique.facturesMainOeuvre.some(
             f => f.facture.toString() === factureId
         );
 
-        if (!item) {
+        if (!exists) {
             return res.status(404).json({
                 success: false,
                 message: 'Facture non trouvée dans l’historique'
@@ -62,30 +77,27 @@ exports.deleteFactureFromHistory = async (req, res) => {
 
         await historique.save();
 
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
             message: 'Facture supprimée de l’historique',
             data: factureSupprimee
         });
 
     } catch (error) {
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
             message: error.message
         });
     }
 };
 
+
+// ======================================================
+// CHANGE VISIBILITY (TOGGLE)
+// ======================================================
 exports.changeFactureVisibility = async (req, res) => {
     try {
         const { historiqueId, type, factureId } = req.params;
-
-        if (!historiqueId || !type || !factureId) {
-            return res.status(400).json({
-                success: false,
-                message: "historiqueId, type et factureId sont requis"
-            });
-        }
 
         const historique = await HistoriqueFactures.findById(historiqueId);
 
@@ -96,11 +108,11 @@ exports.changeFactureVisibility = async (req, res) => {
             });
         }
 
-  const mapping = {
-    mainOeuvre: "facturesMainOeuvre",
-    peinture: "facturesPeinture",
-    device: "facturesDevice"
-};
+        const mapping = {
+            mainOeuvre: "facturesMainOeuvre",
+            peinture: "facturesPeinture",
+            device: "facturesDevice"
+        };
 
         const field = mapping[type];
 
@@ -122,12 +134,11 @@ exports.changeFactureVisibility = async (req, res) => {
             });
         }
 
-        // toggle visibilité
         item.visibilite = !item.visibilite;
 
         await historique.save();
 
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
             message: "Visibilité modifiée avec succès",
             data: {
@@ -139,20 +150,23 @@ exports.changeFactureVisibility = async (req, res) => {
         });
 
     } catch (error) {
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
-            message: "Erreur serveur",
-            error: error.message
+            message: error.message
         });
     }
 };
-// GET visible factures only
+
+
+// ======================================================
+// GET VISIBLE FACTURES
+// ======================================================
 exports.getVisibleFactures = async (req, res) => {
     try {
         const histories = await HistoriqueFactures.find()
             .populate('facturesMainOeuvre.facture')
-            .populate('facturesPeinture.facture');
-            //.populate('facturesDevice.facture');
+            .populate('facturesPeinture.facture')
+            .populate('facturesDevice.facture');
 
         const result = histories.map(history => {
             const h = history.toObject();
@@ -161,7 +175,7 @@ exports.getVisibleFactures = async (req, res) => {
                 ...h,
                 facturesMainOeuvre: h.facturesMainOeuvre.filter(f => f.visibilite === true),
                 facturesPeinture: h.facturesPeinture.filter(f => f.visibilite === true),
-                //facturesDevice: h.facturesDevice.filter(f => f.visibilite === true)
+                facturesDevice: h.facturesDevice.filter(f => f.visibilite === true)
             };
         });
 
@@ -178,12 +192,16 @@ exports.getVisibleFactures = async (req, res) => {
     }
 };
 
+
+// ======================================================
+// GET HIDDEN FACTURES
+// ======================================================
 exports.getHiddenFactures = async (req, res) => {
     try {
         const histories = await HistoriqueFactures.find()
             .populate('facturesMainOeuvre.facture')
-            .populate('facturesPeinture.facture');
-           // .populate('facturesDevice.facture');
+            .populate('facturesPeinture.facture')
+            .populate('facturesDevice.facture');
 
         const result = histories
             .map(history => {
@@ -193,13 +211,13 @@ exports.getHiddenFactures = async (req, res) => {
                     ...h,
                     facturesMainOeuvre: h.facturesMainOeuvre.filter(f => f.visibilite === false),
                     facturesPeinture: h.facturesPeinture.filter(f => f.visibilite === false),
-                    //facturesDevice: h.facturesDevice.filter(f => f.visibilite === false)
+                    facturesDevice: h.facturesDevice.filter(f => f.visibilite === false)
                 };
             })
             .filter(h =>
                 h.facturesMainOeuvre.length > 0 ||
-                h.facturesPeinture.length > 0 
-                //h.facturesDevice.length > 0
+                h.facturesPeinture.length > 0 ||
+                h.facturesDevice.length > 0
             );
 
         res.status(200).json({

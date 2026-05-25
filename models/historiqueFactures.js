@@ -33,7 +33,7 @@ const historiqueSchema = new mongoose.Schema({
             }
         }
     ],
-
+ 
     facturesDevice: [
         {
             facture: {
