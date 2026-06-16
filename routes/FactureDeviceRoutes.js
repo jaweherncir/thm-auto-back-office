@@ -1,20 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const factureCtrl = require('../controllers/FactureDeviceController'); // Ajustez le chemin vers votre contrôleur
 
-// Route pour ajouter une facture
-router.post('/', factureCtrl.createFacture);
+const factureCtrl = require('../controllers/FactureDeviceController');
 
-// Route pour récupérer toutes les factures
-router.get('/', factureCtrl.getAllFactures);
+router.post('/', factureCtrl.createDevice);
+router.get('/', factureCtrl.getAllDevices);
+router.get('/:id', factureCtrl.getOneDevice);
 
-// Route pour récupérer une seule facture grâce à son ID Mongoose
-router.get('/:id', factureCtrl.getOneFacture);
+router.put('/:id/main', factureCtrl.updateMainOeuvre);
+router.put('/:id/peinture', factureCtrl.updatePeinture);
 
-// Route pour modifier une facture grâce à son ID Mongoose
-router.put('/:id', factureCtrl.updateFacture);
+router.delete('/:id', factureCtrl.deleteDevice);
+router.delete('/:id/main', factureCtrl.deleteMainOeuvre);
+router.delete('/:id/peinture', factureCtrl.deletePeinture);
 
-// Route pour supprimer une facture grâce à son ID Mongoose
-router.delete('/:id', factureCtrl.deleteFacture);
-
-module.exports = router;
+module.exports = router; 
