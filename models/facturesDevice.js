@@ -1,48 +1,117 @@
 const mongoose = require('mongoose');
 
-// Définition du schéma pour les éléments de la main-d'œuvre (changement, dressage, réparation)
-const tacheSchema = new mongoose.Schema({
-  designation: { type: String, required: true },
-  prix: { type: Number, required: true }
-}, { _id: false }); // _id: false évite de générer un ID pour chaque sous-élément si ce n'est pas nécessaire
+/* ===== MAIN D'OEUVRE ===== */
 
-// Définition du schéma pour le matériel de peinture
-const materielPeintureSchema = new mongoose.Schema({
-  nom: { type: String, required: true },
-  quantite: { type: Number, required: true },
-  prixUnitaire: { type: Number, required: true }
+const tacheSchema = new mongoose.Schema({
+    designation: String,
+    prix: Number
 }, { _id: false });
 
-// Schéma principal de la Facture
-const factureDeviceSchema = new mongoose.Schema({
-  nomAdmin: { type: String, default: "" },
-  num_facture: { type: String, required: true, unique: true }, // unique: true est recommandé pour un numéro de facture
-  
-  client: {
-    nom: { type: String, default: "" },
-    teleClient: { type: String, default: "" },
-    numCarteGrise: { type: String, default: "" },
-    matriculeVoiture: { type: String, default: "" }
-  },
-
-  dateIntervention: { type: String, default: "" }, // Vous pouvez utiliser Date si vous préférez formater côté backend
-  heureFacture: { type: String, default: "" },
-
-  mainOeuvre: {
+const mainOeuvreSchema = new mongoose.Schema({
     changement: [tacheSchema],
     dressage: [tacheSchema],
     reparation: [tacheSchema],
-    nombreHeure: { type: Number, required: true },
-    prixParHeure: { type: Number, required: true },
-    totalMainOeuvre: { type: Number, required: true }
-  },
 
-  materielsPeinture: [materielPeintureSchema],
+    totalMainOeuvre: {
+        type: Number,
+        default: 0
+    }
+}, { _id: false });
 
-  totalPeinture: { type: Number, required: true },
-  totalFinal: { type: Number, required: true }
-}, {
-  timestamps: true // Optionnel : Ajoute automatiquement 'createdAt' et 'updatedAt'
+/* ===== PEINTURE ===== */
+
+const peintureSchema = new mongoose.Schema({
+    nom: {
+        type: String,
+        required: true
+    },
+    quantite: {
+        type: Number,
+        required: true,
+        min: 1
+    },
+    prixUnitaire: {
+        type: Number,
+        required: true
+    },
+    total: {
+        type: Number,
+        default: 0
+    }
+}, { _id: false });
+
+/* ===== DEVICE ===== */
+
+const deviceSchema = new mongoose.Schema({
+    motif: {
+        type: String,
+        required: true,
+        unique: true
+    },
+
+    nomAdmin: {
+        type: String,
+        required: true
+    },
+
+    client: {
+        nom: String,
+        teleClient: String,
+        numCarteGrise: String,
+        matriculeVoiture: String
+    },
+
+    factureMainOeuvre: mainOeuvreSchema,
+
+    facturePeinture: [peintureSchema],
+
+    totalMainOeuvre: {
+        type: Number,
+        default: 0
+    },
+
+    totalPeinture: {
+        type: Number,
+        default: 0
+    },
+
+    totalGeneral: {
+        type: Number,
+        default: 0
+    }
+
+}, { timestamps: true });
+
+/* ===== PRE SAVE (CORRECTEMENT PLACÉ) ===== */
+deviceSchema.pre('save', async function () {
+
+    /* MAIN D'OEUVRE */
+    let totalMO = 0;
+
+    const sections = ['changement', 'dressage', 'reparation'];
+
+    sections.forEach(sec => {
+        (this.factureMainOeuvre?.[sec] || []).forEach(item => {
+            totalMO += item.prix || 0;
+        });
+    });
+
+    this.totalMainOeuvre = totalMO;
+
+    /* PEINTURE */
+    let totalP = 0;
+
+    (this.facturePeinture || []).forEach(item => {
+        item.total = item.quantite * item.prixUnitaire;
+        totalP += item.total;
+    });
+
+    this.totalPeinture = totalP;
+
+    /* TOTAL FINAL */
+    this.totalGeneral = totalMO + totalP;
 });
 
-module.exports = mongoose.model('FactureDevice', factureDeviceSchema);
+/* ===== EXPORT À LA FIN ===== */
+
+module.exports = mongoose.model('Device', deviceSchema);
